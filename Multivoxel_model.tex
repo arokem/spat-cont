@@ -1,0 +1,70 @@
+
+\documentclass[11pt]{amsart}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{epstopdf}
+\usepackage[comma,authoryear]{natbib}
+%\usepackage{parskip}
+\usepackage{times} % will use Times font instead of the default, saving significant space.
+\usepackage{url}
+\urlstyle{same}
+\addtolength{\textheight}{3cm}
+\setlength{\oddsidemargin}{9pt} 
+\setlength{\evensidemargin}{9pt}
+\linespread{1.3}
+
+\newcommand{\mone}{\mu^1}
+\newcommand{\mtwo}{\mu^2}
+\newcommand{\mpi}{\mu^{\pi(i)}}
+\newcommand{\ei}{\epsilon^i}
+\newcommand{\Bul}{B_{u,l}}
+\newtheorem{definition}{Definition}
+\newcommand{\bumpsum}{\Delta}
+\newcommand{\tj}{\theta_j}
+\newcommand{\ti}{\theta_i}
+\newcommand{\yti}{y_{theta_i}}
+\newcommand{\ytil}{y_{theta_i,l}}
+
+%\newcommand{}{\!}{Y_}
+
+
+
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+\begin{document}
+\section{Single voxel model}
+Let us first look at a model for a single response as a function of that voxel's parameters. 
+
+\subsection{Notaions}
+We have $J$ parameters describing the flow at each voxel, which we parameterize 
+using $\beta_{\theta_j}$. For neighboring voxels we add the parameter $l = 1,...,26$, 
+so that  $\beta_{\theta_j, 1}$ describes the flow to direction $\theta_j$ at neighbor 1. 
+
+We measure DTI at each voxel in $B$ directions parametrized by $\theta_i$. 
+We use $\yti$ for the voxel of reference, and $\ytil$ for the 
+measurement at neighbor $l$. 
+
+\subsection{The model}
+We assume the data is generated from the following model:
+\[y_{\theta_i} = \sum_{j in J} \beta_{\theta_j} f(b, \alpha(\theta_i, \theta_j)) + \epsilon_i +  \omega_i \]
+where 
+\begin{enumerate}
+\item $\alpha(\theta_i, \theta_j) $ is the angle between $\ti$ and $\tj$.
+\item $f(b, \alpha)$ is the Stejskal \-Tanner equation $e^{-b D}$, which describes the 
+angular effect of flow in direction $\tj$ on observation in $\ti$. 
+\item $\epsilon_j$ is a mean 
+\end{enumerate}
+ 
+ 
+When we discuss the flow at neighboring voxels.  
+We use
+
+
+
+%\bibliography{ISF}{}
+%\bibliographystyle{plain}
+\end{document}  
