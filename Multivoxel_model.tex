@@ -39,28 +39,29 @@
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
 \begin{document}
 \section{Single voxel model}
-DTI observations are used to estimate flow parameters at high angular densities. 
-Each observation can be modeled as a sum of individual angular flow contributions. 
-Angular flow at each voxel can therefore be estimated using non-negative solvers for the linear model. 
+DTI observations are used to estimate diffusion parameters at high angular densities. 
+Each observation can be modeled as a sum of individual angular diffusion contributions. 
+Angular diffusion at each voxel can therefore be estimated using non-negative solvers for the linear model. 
 The resulting design matrix is unfortunately ill-conditioned, requiring additional regularization of the solution space. 
 The resulting angular pattern depends strongly on the regularization chosen. 
 In particular, L1 or otherwise sparse solutions are unstable. 
 
 We hope to somewhat increase the conditioning of the design matrix by adding observations 
 from neighboring voxels. We extend the models to describe the dependence of 
-an angular observation on the flow parameters of a different voxel. Neighbors 
-that are aligned in the direction of the flow should be effected by the parameters,  
-whereas neighbors perpendicular to an observed flow should not be. 
+an angular observation on the diffusion parameters of a different voxel. Neighbors 
+that are aligned in the direction of the diffusion should be effected by the parameters,  
+whereas neighbors perpendicular to an observed diffusion should not be. 
 
 \subsection{Notation}
 
-At this stage, we are interested in estimating the flow parameters at a 
+At this stage, we are interested in estimating the diffusion parameters at a 
 specific voxel using data from several different voxels. 
 For reference, we call the voxel of interest voxel 0. 
-Flow in our voxel is discretized into onto a dense sampling of angles $\{\tj\}_{j \in \mathcal{J}}$. 
+Diffusion in our voxel is discretized using a dense sampling grid, denoted by
+the angles $\{\tj\}_{j \in \mathcal{J}}$. 
 We represent with real-valued parameters $\beta_{\tj}\geq 0$.
 Neighboring voxels are represented with relation to voxel $0$, indexed by $l \in \mathcal{L} = {0,-1,1}^3$. 
-We add the voxel index to the parameter $\beta_{\tj, l}$ to denote the flow at neighbor $l$. 
+We add the voxel index to the parameter $\beta_{\tj, l}$ to denote the diffusion at neighbor $l$. 
 $\|l\|$ is the distance between $(0,0,0)$ and $l$.
 
 DTI at each voxel is measured in directions $\{\ti\}_{ i \in \mathcal{I}}$ resulting in  $B = |\mathcal{I}| $ observations per voxel.  
@@ -68,17 +69,17 @@ $\yti$ denotes the observation at direction $\ti$ for the voxel 0, and $\ytil$ f
 measurement at neighbor $l$. 
 
 \subsection{The model}
-The effect of local flow on local observations are described by the standard model:
+The effect of local diffusion on local observations are described by the standard model:
 \begin{equation}
 \yti = \sum_{j \in \mathcal{J}} \beta_{\tj} \cdot f(b, \alpha(\ti, \tj)) + \epsilon_i 
 \label{basicEq}
 \end{equation}
 where 
 \begin{enumerate}
-\item The parameters $\beta_{\theta_1},...,\beta_{\tj}$ represent directional flow in a single voxel. 
+\item The parameters $\beta_{\theta_1},...,\beta_{\tj}$ represent directional diffusion in a single voxel. 
 \item $\alpha(\ti, \tj)$ is the angle between $\ti$ and $\tj$.
 \item The function $f(b, \alpha(\ti, \tj))$ is the Stejskal-Tanner equation $e^{-b D}$, which describes the 
-angular effect of flow on observation.  
+angular effect of diffusion on observation.  
 $b$ is a known (and tunable) parameter of measurement procedure.   
 \item $\epsilon_i $ represents the known and unknown measurement errors (for now we don't 
 tease these apart). We assume the $\epsilon_i$'s are iid, with $0$ mean $0$ and $\sigma^2$ variance.
@@ -104,7 +105,7 @@ parameters from voxel 0
 \hat{\beta}_{\tj,l} = c_{\tj,l} + \sum_{k\in\mathcal{J}} w_{\tj,\tk, l} \cdot \beta_{\tk}. 
 \end{equation} 
 
-The $w$ weights represent the amount of information carried over from the flow in a neighboring voxel. 
+The $w$ weights represent the amount of information carried over from the diffusion in a neighboring voxel. 
 An example for the weight function could be
 \[ w_{\tj,\tk, l}  = cos(\alpha(l,\tk)) \cdot cos(\alpha(l, \tj)) \cdot e^{-\|l\|/\tau}, \]
 in which $\tj, \tk$, and $l$ need to be roughly aligned for information to carry over. 
@@ -119,7 +120,7 @@ E[\ytil] = & \sum_{j \in \mathcal{J}}  f(b, \alpha(\ti, \tj)) \textcolor{blue}{\
   = & c_{\ti,l} +  \sum_{j\in\mathcal{J}}  \beta_{\tj}  (\sum_{k\in \mathcal{J}}  f(b, \alpha(\ti, \tk))  w_{\tk,\tj, l}).
 \end{eqnarray*}   
 The mean of the neighbor observations can be expressed as a linear model in the same parameters $\beta_{\tj}$ as in $\eqref{basicEq}$,
-with some reweighing due to the flow directions. Nevertheless, the model cannot be as successful as before because we replaced 
+with some reweighing due to the diffusion directions. Nevertheless, the model cannot be as successful as before because we replaced 
 directly applicable quantities with lossy approximations of those quantities. We therefore explicitly introduce this approximation 
 error and model or estimate the additional variance it represents. 
 
