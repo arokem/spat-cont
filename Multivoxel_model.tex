@@ -8,6 +8,7 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{epstopdf}
+\usepackage{color}
 \usepackage[comma,authoryear]{natbib}
 %\usepackage{parskip}
 \usepackage{times} % will use Times font instead of the default, saving significant space.
@@ -27,8 +28,9 @@
 \newcommand{\bumpsum}{\Delta}
 \newcommand{\tj}{\theta_j}
 \newcommand{\ti}{\theta_i}
-\newcommand{\yti}{y_{theta_i}}
-\newcommand{\ytil}{y_{theta_i,l}}
+\newcommand{\tk}{\theta_k}
+\newcommand{\yti}{Y_{\theta_i}}
+\newcommand{\ytil}{Y_{\theta_i,l}}
 
 %\newcommand{}{\!}{Y_}
 
@@ -37,31 +39,111 @@
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
 \begin{document}
 \section{Single voxel model}
-Let us first look at a model for a single response as a function of that voxel's parameters. 
+DTI observations are used to estimate flow parameters at high angular densities. 
+Each observation can be modeled as a sum of individual angular flow contributions. 
+Angular flow at each voxel can therefore be estimated using non-negative solvers for the linear model. 
+The resulting design matrix is unfortunately ill-conditioned, requiring additional regularization of the solution space. 
+The resulting angular pattern depends strongly on the regularization chosen. 
+In particular, L1 or otherwise sparse solutions are unstable. 
 
-\subsection{Notaions}
-We have $J$ parameters describing the flow at each voxel, which we parameterize 
-using $\beta_{\theta_j}$. For neighboring voxels we add the parameter $l = 1,...,26$, 
-so that  $\beta_{\theta_j, 1}$ describes the flow to direction $\theta_j$ at neighbor 1. 
+We hope to somewhat increase the conditioning of the design matrix by adding observations 
+from neighboring voxels. We extend the models to describe the dependence of 
+an angular observation on the flow parameters of a different voxel. Neighbors 
+that are aligned in the direction of the flow should be effected by the parameters,  
+whereas neighbors perpendicular to an observed flow should not be. 
 
-We measure DTI at each voxel in $B$ directions parametrized by $\theta_i$. 
-We use $\yti$ for the voxel of reference, and $\ytil$ for the 
+\subsection{Notation}
+
+At this stage, we are interested in estimating the flow parameters at a 
+specific voxel using data from several different voxels. 
+For reference, we call the voxel of interest voxel 0. 
+Flow in our voxel is discretized into onto a dense sampling of angles $\{\tj\}_{j \in \mathcal{J}}$. 
+We represent with real-valued parameters $\beta_{\tj}\geq 0$.
+Neighboring voxels are represented with relation to voxel $0$, indexed by $l \in \mathcal{L} = {0,-1,1}^3$. 
+We add the voxel index to the parameter $\beta_{\tj, l}$ to denote the flow at neighbor $l$. 
+$\|l\|$ is the distance between $(0,0,0)$ and $l$.
+
+DTI at each voxel is measured in directions $\{\ti\}_{ i \in \mathcal{I}}$ resulting in  $B = |\mathcal{I}| $ observations per voxel.  
+$\yti$ denotes the observation at direction $\ti$ for the voxel 0, and $\ytil$ for the 
 measurement at neighbor $l$. 
 
 \subsection{The model}
-We assume the data is generated from the following model:
-\[y_{\theta_i} = \sum_{j in J} \beta_{\theta_j} f(b, \alpha(\theta_i, \theta_j)) + \epsilon_i +  \omega_i \]
+The effect of local flow on local observations are described by the standard model:
+\begin{equation}
+\yti = \sum_{j \in \mathcal{J}} \beta_{\tj} \cdot f(b, \alpha(\ti, \tj)) + \epsilon_i 
+\label{basicEq}
+\end{equation}
 where 
 \begin{enumerate}
-\item $\alpha(\theta_i, \theta_j) $ is the angle between $\ti$ and $\tj$.
-\item $f(b, \alpha)$ is the Stejskal \-Tanner equation $e^{-b D}$, which describes the 
-angular effect of flow in direction $\tj$ on observation in $\ti$. 
-\item $\epsilon_j$ is a mean 
+\item The parameters $\beta_{\theta_1},...,\beta_{\tj}$ represent directional flow in a single voxel. 
+\item $\alpha(\ti, \tj)$ is the angle between $\ti$ and $\tj$.
+\item The function $f(b, \alpha(\ti, \tj))$ is the Stejskal-Tanner equation $e^{-b D}$, which describes the 
+angular effect of flow on observation.  
+$b$ is a known (and tunable) parameter of measurement procedure.   
+\item $\epsilon_i $ represents the known and unknown measurement errors (for now we don't 
+tease these apart). We assume the $\epsilon_i$'s are iid, with $0$ mean $0$ and $\sigma^2$ variance.
 \end{enumerate}
- 
- 
-When we discuss the flow at neighboring voxels.  
-We use
+
+\subsection{Expanding the model to neighboring voxels}.
+Our goal is then to express an observation at a neighboring voxel $l$, $\ytil$, in terms of the parameters 
+of voxel 0. For voxel $l$, the relationship in Eq \eqref{basicEq} still holds:
+\begin{equation}
+\ytil = \sum_{j \in \mathcal{J}} \beta_{\tj,l} \cdot f(b, \alpha(\ti, \tj)) + \epsilon_{i,l} 
+\label{neighbor}
+\end{equation}
+However, we don't want to estimate the parameters at voxel $l$.
+Instead, we try to replace them with their linear approximation based on the $\beta_{\tj}$'s. 
+The resulting linear equations can explain less of the variance in the observations compared to the original
+equations for voxel 0. First we discuss the linear approximation for the mean, 
+then we briefly discuss the added approximation error. 
+
+\subsubsection{A linear approximation}
+We aim for their best linear approximation of $\beta_{\tj,l}$ using the 
+parameters from voxel 0
+\begin{equation}
+\hat{\beta}_{\tj,l} = c_{\tj,l} + \sum_{k\in\mathcal{J}} w_{\tj,\tk, l} \cdot \beta_{\tk}. 
+\end{equation} 
+
+The $w$ weights represent the amount of information carried over from the flow in a neighboring voxel. 
+An example for the weight function could be
+\[ w_{\tj,\tk, l}  = cos(\alpha(l,\tk)) \cdot cos(\alpha(l, \tj)) \cdot e^{-\|l\|/\tau}, \]
+in which $\tj, \tk$, and $l$ need to be roughly aligned for information to carry over. 
+Alternatively, we might want normalized weights in 
+\[\tilde{w}_{\tj,\tk, l}  = \frac{w_{\tj,\tk, l}}{\sum_\mathcal{k \in \mathcal{J}} w_{\tj,\theta_{k'}, l}} \]
+
+We still need to reformulate Equation \eqref{neighbor} as a linear model in the original parameter vector $\beta_{\tj}$.
+\begin{eqnarray*}
+E[\ytil] = & \sum_{j \in \mathcal{J}}  f(b, \alpha(\ti, \tj)) \textcolor{blue}{\hat{\beta}}_{\tk,l} \\
+ = & \sum_{j \in \mathcal{J}} ( \sum_{k\in\mathcal{J}} f(b, \alpha(\ti, \tj)) ( w_{\tj,\tk, l} \cdot \beta_{\tk} + c_{\tj,l})\\
+ = & c_{\ti,l} +  \sum_{k\in\mathcal{J}}  \beta_{\tk}  (\sum_{j \in \mathcal{J}}  f(b, \alpha(\ti, \tj))  w_{\tj,\tk, l})\\
+  = & c_{\ti,l} +  \sum_{j\in\mathcal{J}}  \beta_{\tj}  (\sum_{k\in \mathcal{J}}  f(b, \alpha(\ti, \tk))  w_{\tk,\tj, l}).
+\end{eqnarray*}   
+The mean of the neighbor observations can be expressed as a linear model in the same parameters $\beta_{\tj}$ as in $\eqref{basicEq}$,
+with some reweighing due to the flow directions. Nevertheless, the model cannot be as successful as before because we replaced 
+directly applicable quantities with lossy approximations of those quantities. We therefore explicitly introduce this approximation 
+error and model or estimate the additional variance it represents. 
+
+\subsubsection{Extra variability}
+More exactly, we take a \emph{quasi-Bayesian} approach \footnote{The term is not technical, rather used here to point to an inconsistency}
+in modeling the parameters $\beta_{\tj,l}$
+\begin{equation}
+\beta_{\tj,l} = \underbrace{c_{\tj,l} + \sum_{k\in\mathcal{J}} w_{\theta_j,\theta_k, l} \cdot \beta_{\tj}}_{\hat{\beta}_{\tj,l}} + \nu_{j,l}, 
+\label{rexpress}
+\end{equation}
+where $\nu_{j,l}$ represents the error in the representation of $\beta_{\tj,l}$ based on its neighbors. 
+If the parametric grid $\{\tj\}_\mathcal{J}$ is uniform on the sphere, the overall magnitude of approximation error 
+should only depend on $l$. 
+
+Substituting Equation \eqref{rexpress} into \eqref{neighbor} we get
+\begin{equation}
+\ytil = \sum_{j \in \mathcal{J}} \textcolor{blue}{\hat{\beta}}_{\tj,l} \cdot f(b, \alpha(\ti, \tj)) + \epsilon_{i,l} +  \textcolor{blue}{\omega_{i,l}}.
+\end{equation}
+The extra term $\omega_i$ represents the aggregated approximation errors $\nu_{j,l}$ through
+\[ \omega_{i,l} = \sum_{k\in\mathcal{J}} \nu_{j,i} \cdot f(b, \alpha(\ti, \tj)).\]
+I'm not sure the variance due to approximation ($var(\omega_{i,l}$) is tractable, but it should be one parameter per $\|l\|$. 
+
+\subsubsection{The full linear model for the data}
+
 
 
 
