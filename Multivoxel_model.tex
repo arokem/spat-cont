@@ -58,8 +58,8 @@ At this stage, we are interested in estimating the flow parameters at a
 specific voxel using data from several different voxels. 
 For reference, we call the voxel of interest voxel 0. 
 Flow in our voxel is discretized into onto a dense sampling of angles $\{\tj\}_{j \in \mathcal{J}}$. 
-We represent with real-valued parameters $\beta_{\tj}\geq 0$.
-Neighboring voxels are represented with relation to voxel $0$, indexed by $l \in \mathcal{L} = {0,-1,1}^3$. 
+We represent flow with real-valued parameters $\beta_{\tj}\geq 0$.
+Neighboring voxels are represented with relation to voxel $0$, indexed by $l \in \mathcal{L} = \{0,-1,1\}^3$. 
 We add the voxel index to the parameter $\beta_{\tj, l}$ to denote the flow at neighbor $l$. 
 $\|l\|$ is the distance between $(0,0,0)$ and $l$.
 
@@ -68,7 +68,7 @@ $\yti$ denotes the observation at direction $\ti$ for the voxel 0, and $\ytil$ f
 measurement at neighbor $l$. 
 
 \subsection{The model}
-The effect of local flow on local observations are described by the standard model:
+The effects of local flow on local observations are described by the standard model:
 \begin{equation}
 \yti = \sum_{j \in \mathcal{J}} \beta_{\tj} \cdot f(b, \alpha(\ti, \tj)) + \epsilon_i 
 \label{basicEq}
@@ -79,14 +79,14 @@ where
 \item $\alpha(\ti, \tj)$ is the angle between $\ti$ and $\tj$.
 \item The function $f(b, \alpha(\ti, \tj))$ is the Stejskal-Tanner equation $e^{-b D}$, which describes the 
 angular effect of flow on observation.  
-$b$ is a known (and tunable) parameter of measurement procedure.   
+$b$ is a known (and tunable) parameter of the measurement procedure.   
 \item $\epsilon_i $ represents the known and unknown measurement errors (for now we don't 
-tease these apart). We assume the $\epsilon_i$'s are iid, with $0$ mean $0$ and $\sigma^2$ variance.
+tease these apart). We assume the $\epsilon_i$'s are iid, with $0$ mean and $\sigma^2$ variance.
 \end{enumerate}
 
 \subsection{Expanding the model to neighboring voxels}.
-Our goal is then to express an observation at a neighboring voxel $l$, $\ytil$, in terms of the parameters 
-of voxel 0. For voxel $l$, the relationship in Eq \eqref{basicEq} still holds:
+Our goal is to express an observation at voxel $l$, $\ytil$ in terms of the parameters 
+of voxel 0. For voxel $l$, the relationship described in Eq \eqref{basicEq} still holds:
 \begin{equation}
 \ytil = \sum_{j \in \mathcal{J}} \beta_{\tj,l} \cdot f(b, \alpha(\ti, \tj)) + \epsilon_{i,l} 
 \label{neighbor}
@@ -95,7 +95,7 @@ However, we don't want to estimate the parameters at voxel $l$.
 Instead, we try to replace them with their linear approximation based on the $\beta_{\tj}$'s. 
 The resulting linear equations can explain less of the variance in the observations compared to the original
 equations for voxel 0. First we discuss the linear approximation for the mean, 
-then we briefly discuss the added approximation error. 
+then we briefly discuss the added variance due to approximation error. 
 
 \subsubsection{A linear approximation}
 We aim for their best linear approximation of $\beta_{\tj,l}$ using the 
@@ -108,7 +108,7 @@ The $w$ weights represent the amount of information carried over from the flow i
 An example for the weight function could be
 \[ w_{\tj,\tk, l}  = cos(\alpha(l,\tk)) \cdot cos(\alpha(l, \tj)) \cdot e^{-\|l\|/\tau}, \]
 in which $\tj, \tk$, and $l$ need to be roughly aligned for information to carry over. 
-Alternatively, we might want normalized weights in 
+Alternatively, we might want to use normalized weights, as in 
 \[\tilde{w}_{\tj,\tk, l}  = \frac{w_{\tj,\tk, l}}{\sum_\mathcal{k \in \mathcal{J}} w_{\tj,\theta_{k'}, l}} \]
 
 We still need to reformulate Equation \eqref{neighbor} as a linear model in the original parameter vector $\beta_{\tj}$.
@@ -118,10 +118,29 @@ E[\ytil] = & \sum_{j \in \mathcal{J}}  f(b, \alpha(\ti, \tj)) \textcolor{blue}{\
  = & c_{\ti,l} +  \sum_{k\in\mathcal{J}}  \beta_{\tk}  (\sum_{j \in \mathcal{J}}  f(b, \alpha(\ti, \tj))  w_{\tj,\tk, l})\\
   = & c_{\ti,l} +  \sum_{j\in\mathcal{J}}  \beta_{\tj}  (\sum_{k\in \mathcal{J}}  f(b, \alpha(\ti, \tk))  w_{\tk,\tj, l}).
 \end{eqnarray*}   
-The mean of the neighbor observations can be expressed as a linear model in the same parameters $\beta_{\tj}$ as in $\eqref{basicEq}$,
-with some reweighing due to the flow directions. Nevertheless, the model cannot be as successful as before because we replaced 
-directly applicable quantities with lossy approximations of those quantities. We therefore explicitly introduce this approximation 
-error and model or estimate the additional variance it represents. 
+The weights of the flow parameters $\beta_{\tj}$ in the new equation are determined by a convolution of two function: 
+the response function $f$, and the directional smoothness of flow $w$. 
+The convolution is computed along the discretized sphere $\{\tk\}_{k \in \mathcal{J}}$. 
+We can use the shorthand $f_{\ti,b}* w_{\tj,l}$ and write
+\footnote{The notational abuse of $\ti$ and $\tj$ is evident here. We should consider changing to $\theta_{(j)}$ or instead assume $\mathcal{I}=\mathcal{J}$.} 
+\begin{equation}
+E[\ytil]  = c_{\ti,l} +  \beta_{\theta_1} \cdot f_{\ti,b}* w_{\theta_1,l}+ ... +\beta_{\theta_{|\mathcal{J}|}} \cdot f_{\ti,b}* w_{\theta_{|\mathcal{J}|},l}.
+\end{equation}
+From spherical symmetry arguments, $f_{\ti,b}*w_{\tj,l}$ is invariant to joint rotations of $(\ti,\tj, l)$.
+
+\textbf{Comment} The model should extend smoothly to the $\| l\| = 0$ case in Equation \eqref{basicEq}. 
+That would put the following two additional constraints on the weights: 
+\begin{itemize}
+\item Require that the $w_{\tj,\tk,l}$ increase to 1 as $\|l\| \to 0$ if $\tj=\tk$, and decrease towards 0 otherwise.
+\item The norm of the weight vector $w_{\tj,\tk,l}$ should increase towards 1 as $\|l\|$ goes to 0. 
+\end{itemize}
+
+Compared to the local equations \eqref{basicEq}, the neighbor equation introduces an additional source of variation. 
+The flow quantities causing the observed physical effect where replaced in the neighbor model with their lossy approximations.
+The extra error needs to be accounted for. 
+The weighted least squares algorithm optimally combines stochastic equations with different errors by
+down weighing observations with more variance. In the next section we show that rotational symmetry 
+allows us to use few parameters to model this additional variance. 
 
 \subsubsection{Extra variability}
 More exactly, we take a \emph{quasi-Bayesian} approach \footnote{The term is not technical, rather used here to point to an inconsistency}
