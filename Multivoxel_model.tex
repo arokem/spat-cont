@@ -39,7 +39,7 @@
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
 \begin{document}
 \section{Single voxel model}
-DTI observations are used to estimate diffusion parameters at high angular densities. 
+Diffusion-weighted MRI (DWI) observations are used to estimate diffusion parameters at high angular densities. 
 Each observation can be modeled as a sum of individual angular diffusion contributions. 
 Angular diffusion at each voxel can therefore be estimated using non-negative solvers for the linear model. 
 The resulting design matrix is unfortunately ill-conditioned, requiring additional regularization of the solution space. 
@@ -64,7 +64,7 @@ Neighboring voxels are represented with relation to voxel $0$, indexed by $l \in
 We add the voxel index to the parameter $\beta_{\tj, l}$ to denote the diffusion at neighbor $l$. 
 $\|l\|$ is the distance between $(0,0,0)$ and $l$.
 
-DTI at each voxel is measured in directions $\{\ti\}_{ i \in \mathcal{I}}$ resulting in  $B = |\mathcal{I}| $ observations per voxel.  
+DWI at each voxel is measured in directions $\{\ti\}_{ i \in \mathcal{I}}$ resulting in  $B = |\mathcal{I}| $ observations per voxel.  
 $\yti$ denotes the observation at direction $\ti$ for the voxel 0, and $\ytil$ for the 
 measurement at neighbor $l$. 
 
