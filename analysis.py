@@ -18,14 +18,14 @@ def l2norm(vector):
     return vector / np.dot(vector, vector)
 
 
-def distance_weight(dist, tau=1):
+def distance_weight(dist, tau=1.5):
     """
     A weighting for the distance from V0 
     """
     return np.exp(-dist/tau)
 
 
-def weighting(location, out_dir, in_dir):
+def weighting(location, out_dir, in_dir, tau=0.5, exp=0.01):
     """
     A weighting that takes into account the distance from V0, as well as the
     angle between the vector between the center of V0 and each of the
@@ -36,7 +36,8 @@ def weighting(location, out_dir, in_dir):
     norm_location = l2norm(location)
     out_corr = np.dot(norm_location, out_dir) 
     in_corr = np.dot(norm_location, in_dir)
-    return distance_weight(np.dot(location, location)) * out_corr * in_corr
+    return (distance_weight(np.dot(location, location)) *
+            (np.abs(out_corr) ** exp) * (np.abs(in_corr) ** exp))
 
 
 def design_matrix(gtab, sphere, evals=np.array([0.0015, 0.0005, 0.0005])):
