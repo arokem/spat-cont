@@ -71,15 +71,42 @@ def design_matrix(gtab, sphere, evals=np.array([0.0015, 0.0005, 0.0005])):
                             this_dm[row, col] *=\
                                 weighting(location, out_dir, in_dir)
                     dm.append(this_dm)
-    return dm
+    return np.concatenate(dm)
 
 
-def preprocess_signal(data, gtab, i, j, k, tau=TAU):
-    # XXX TODO : preallocate these!
-    sig = []
-    sq_weights = []
+def signal_weights(gtab, tau=TAU):
+    """
+    Calculate the weights to apply to signal vectors (depending on the distance
+    of the voxels from the center voxel).
+    """
+    dw_shape = np.sum(~gtab.b0s_mask)
+    dist_weights = np.zeros(27 * dw_shape)
     coords = [0, 1, -1]
-    
+    ii = 0
+    for x in coords:
+        for y in coords:
+            for z in coords:
+                location = np.array([x, y, z])
+                dw_shape = np.sum(~gtab.b0s_mask)
+                if np.all(location == np.array([0, 0, 0])):
+                    dist_weights[ii*dw_shape:(ii+1)*dw_shape] =\
+                        np.ones(dw_shape) 
+                else:
+                    dist_weights[ii*dw_shape:(ii+1)*dw_shape] =\
+                        (np.ones(dw_shape) *
+                         distance_weight(np.dot(location, location),
+                                         tau=tau))
+                ii += 1
+    return dist_weights
+
+
+def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=TAU):
+    if dist_weights is None:
+        dist_weights = signal_weights(gtab, tau=tau)
+    dw_shape = np.sum(~gtab.b0s_mask)
+    sig = np.zeros(27*dw_shape)
+    coords = [0, 1, -1]
+    ii = 0
     for x in coords:
         for y in coords:
             for z in coords:
@@ -88,17 +115,10 @@ def preprocess_signal(data, gtab, i, j, k, tau=TAU):
                 this_data = (this_data[~gtab.b0s_mask]
                              / np.mean(this_data[gtab.b0s_mask]))
                 this_data = this_data - np.mean(this_data)
-                if np.all(location == np.array([0, 0, 0])):
-                    sig.append(this_data)
-                    sq_weights.append(np.ones(this_data.shape[0]) * 1)
-                else:
-                    dw = distance_weight(np.dot(location, location),
-                                         tau=tau)
+                sig[ii*dw_shape:(ii+1)*dw_shape] =\
+                    this_data * dist_weights[ii*dw_shape:(ii+1)*dw_shape]
+                ii += 1
                     
-                    sig.append(dw * this_data)
-                    sq_weights.append(np.ones(this_data.shape[0]) * (dw ** 2))
-                    
-    return sig, sq_weights
-    
+    return sig
 
 
