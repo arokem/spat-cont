@@ -2,6 +2,7 @@ import numpy as np
 import dipy.reconst.dti as dti
 import dipy.reconst.sfm as sfm
 import dipy.core.geometry as geo
+import dipy.core.ndindex as dnd
 
 TAU = 1
 
@@ -50,27 +51,25 @@ def design_matrix(gtab, sphere, evals=np.array([0.0015, 0.0005, 0.0005])):
     # Get the generic SFM design matrix:
     sfm_dm = sfm.sfm_design_matrix(gtab, sphere, response=evals)
     # Initialize it with the V0 matrix (which is the original SFM matrix):
-    dm = [sfm_dm]
-    coords = [0, 1, -1]
+    dm = []
+    coords = np.array(list(dnd.ndindex((3,3,3))))- 1
     rows = np.arange(np.sum(~gtab.b0s_mask))
     columns = np.arange(sphere.x.shape[0])
-    for x in coords:
-        for y in coords:
-            for z in coords:
-                if [x, y, z] == [0, 0, 0]:
-                    pass
-                else:
-                    # Start with the original matrix and downweight each
-                    # component as necessary:
-                    this_dm = sfm_dm.copy() 
-                    location = np.array([x, y, z])
-                    for row in rows:
-                        out_dir = gtab.bvecs[~gtab.b0s_mask][row]
-                        for col in columns:
-                            in_dir = sphere.vertices[col]
-                            this_dm[row, col] *=\
-                                weighting(location, out_dir, in_dir)
-                    dm.append(this_dm)
+    for x,y,z in coords:
+        if [x, y, z] == [0, 0, 0]:
+            dm.append(sfm_dm)
+        else:
+            # Start with the original matrix and downweight each
+            # component as necessary:
+            this_dm = sfm_dm.copy() 
+            location = np.array([x, y, z])
+            for row in rows:
+                out_dir = gtab.bvecs[~gtab.b0s_mask][row]
+                for col in columns:
+                    in_dir = sphere.vertices[col]
+                    this_dm[row, col] *=\
+                        weighting(location, out_dir, in_dir)
+            dm.append(this_dm)
     return np.concatenate(dm)
 
 
@@ -81,22 +80,20 @@ def signal_weights(gtab, tau=TAU):
     """
     dw_shape = np.sum(~gtab.b0s_mask)
     dist_weights = np.zeros(27 * dw_shape)
-    coords = [0, 1, -1]
+    coords = np.array(list(dnd.ndindex((3,3,3))))- 1
     ii = 0
-    for x in coords:
-        for y in coords:
-            for z in coords:
-                location = np.array([x, y, z])
-                dw_shape = np.sum(~gtab.b0s_mask)
-                if np.all(location == np.array([0, 0, 0])):
-                    dist_weights[ii*dw_shape:(ii+1)*dw_shape] =\
-                        np.ones(dw_shape) 
-                else:
-                    dist_weights[ii*dw_shape:(ii+1)*dw_shape] =\
-                        (np.ones(dw_shape) *
-                         distance_weight(np.dot(location, location),
-                                         tau=tau))
-                ii += 1
+    for x,y,z in coords:
+        location = np.array([x, y, z])
+        dw_shape = np.sum(~gtab.b0s_mask)
+        if np.all(location == np.array([0, 0, 0])):
+            dist_weights[ii*dw_shape:(ii+1)*dw_shape] =\
+                np.ones(dw_shape) 
+        else:
+            dist_weights[ii*dw_shape:(ii+1)*dw_shape] =\
+                (np.ones(dw_shape) *
+                 distance_weight(np.dot(location, location),
+                                 tau=tau))
+        ii += 1
     return dist_weights
 
 
@@ -105,20 +102,12 @@ def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=TAU):
         dist_weights = signal_weights(gtab, tau=tau)
     dw_shape = np.sum(~gtab.b0s_mask)
     sig = np.zeros(27*dw_shape)
-    coords = [0, 1, -1]
-    ii = 0
-    for x in coords:
-        for y in coords:
-            for z in coords:
-                location = np.array([x, y, z])
-                this_data = data[i+x, j+y, k+z]
-                this_data = (this_data[~gtab.b0s_mask]
-                             / np.mean(this_data[gtab.b0s_mask]))
-                this_data = this_data - np.mean(this_data)
-                sig[ii*dw_shape:(ii+1)*dw_shape] =\
-                    this_data * dist_weights[ii*dw_shape:(ii+1)*dw_shape]
-                ii += 1
-                    
+    coords = np.array(list(dnd.ndindex((3,3,3))))- 1
+    this_data = data[i + coords[:, 0], j + coords[:, 1], k + coords[:, 2]]
+    sig = (this_data[..., ~gtab.b0s_mask] /
+           np.mean(this_data[..., ~gtab.b0s_mask], -1)[..., None])
+    sig = sig - np.mean(sig, -1)[..., None]
+    sig = sig.ravel() * dist_weights
     return sig
 
 
