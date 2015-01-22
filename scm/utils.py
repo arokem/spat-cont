@@ -51,7 +51,7 @@ def design_matrix(gtab, sphere, evals=np.array([0.0015, 0.0005, 0.0005])):
     sfm_dm = sfm.sfm_design_matrix(gtab, sphere, response=evals)
     # Initialize it with the V0 matrix (which is the original SFM matrix):
     dm = []
-    coords = np.array(list(dnd.ndindex((3,3,3))))- 1
+    coords = np.array(list(dnd.ndindex((3, 3, 3)))) - 1
     rows = np.arange(np.sum(~gtab.b0s_mask))
     columns = np.arange(sphere.x.shape[0])
     for x, y, z in coords:
@@ -100,7 +100,7 @@ def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=TAU):
     coords = np.array(list(dnd.ndindex((3, 3, 3)))) - 1
     this_data = data[i + coords[:, 0], j + coords[:, 1], k + coords[:, 2]]
     sig = (this_data[..., ~gtab.b0s_mask] /
-           np.mean(this_data[..., ~gtab.b0s_mask], -1)[..., None])
+           np.mean(this_data[..., gtab.b0s_mask], -1)[..., None])
     sig = sig - np.mean(sig, -1)[..., None]
     sig = sig.ravel() * dist_weights
     return sig
