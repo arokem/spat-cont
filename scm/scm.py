@@ -1,12 +1,10 @@
 """
 SCM: The Spatial Continuity Model
+---------------------------------
 
-Model diffusion MRI data, assuming that white matter fibers have a spatial
+Models diffusion MRI data, assuming that white matter fibers have a spatial
 extent, and that we can make assumptions about the data in voxel 0, based on
-its neighbors on all sides.
-
-Something like that.
-
+its neighbors on all sides. 
 
 """
 import utils as ut
@@ -37,7 +35,7 @@ class SpatContModel(SparseFascicleModel):
 
         mask : array
             A boolean array used to mark the coordinates in the data that
-            should be analyzed that has the shape data.shape[-1]
+            should be analyzed that has the shape data.shape[:-1]
 
         Returns
         -------
