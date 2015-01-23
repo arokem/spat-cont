@@ -30,7 +30,7 @@ def distance_weight(dist, tau=1.0):
     return np.exp(-dist/tau)
 
 
-def weighting(location, out_dir, in_dir, tau=TAU, exp=0.01):
+def weighting(location, out_dir, in_dir, tau=TAU):
     """
     A weighting that takes into account the distance from V0, as well as the
     angle between the vector between the center of V0 and each of the
@@ -41,13 +41,14 @@ def weighting(location, out_dir, in_dir, tau=TAU, exp=0.01):
     norm_location = l2norm(location)
     out_corr = np.dot(norm_location, out_dir) 
     in_corr = np.dot(norm_location, in_dir)
-    return (distance_weight(np.dot(location, location), tau))# *
-            #(np.abs(out_corr) ** exp) * (np.abs(in_corr) ** exp))
+    return (distance_weight(np.dot(location, location), tau))
 
 
-def design_matrix(gtab, sphere, evals=np.array([0.0015, 0.0005, 0.0005])):
+def design_matrix(gtab, sphere, tau=TAU,
+                  evals=np.array([0.0015, 0.0005, 0.0005])):
     """
-    The volumized design matrix by voxel in the NEIGHBORS-by-NEIGHBORS neighborhood
+    The volumized design matrix by voxel in the NEIGHBORS-by-NEIGHBORS
+    neighborhood 
     
 
     """
@@ -72,7 +73,7 @@ def design_matrix(gtab, sphere, evals=np.array([0.0015, 0.0005, 0.0005])):
                 for col in columns:
                     in_dir = sphere.vertices[col]
                     dm[location[0]+1, location[1]+1, location[2]+1, row, col] =\
-                       weighting(location, out_dir, in_dir) * sfm_dm[row, col]
+                       weighting(location, out_dir, in_dir, tau) * sfm_dm[row, col]
             
     return dm
 
@@ -107,7 +108,7 @@ def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=TAU):
     sig = (this_data[..., ~gtab.b0s_mask] /
            np.mean(this_data[..., gtab.b0s_mask], -1)[..., None])
     sig = sig - np.mean(sig, -1)[..., None]
-    sig = sig.ravel() * dist_weights.ravel()
+    sig = sig.ravel() * dist_weights
     return sig
 
 
