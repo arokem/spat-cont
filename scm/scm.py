@@ -75,7 +75,6 @@ class SpatContModel(SparseFascicleModel):
             fit_it = local_data.ravel() * local_dist_weight
             this_alpha = (self.orig_alpha *
                           np.sum(local_dist_weight**2)/local_dm.shape[0])
-            print this_alpha
             self.solver.alpha = this_alpha
             beta[i, j, k] = self.solver.fit(local_dm,
                                             fit_it).coef_
