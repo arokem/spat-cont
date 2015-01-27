@@ -74,10 +74,10 @@ class SpatContModel(SparseFascicleModel):
         dist_weights = ut.signal_weights(self.gtab, self.tau)
         dw_shape = np.sum(~self.gtab.b0s_mask)
         for i, j, k in coords:
-            local_mask = mask[i-1:i+2, i-1:i+2, i-1:i+2]
+            local_mask = mask[i-1:i+2, j-1:j+2, k-1:k+2]
             # Don't bother if there's nothing to analyze here:
             if np.any(local_mask):
-                local_data = norm_data[i-1:i+2, i-1:i+2, i-1:i+2]
+                local_data = norm_data[i-1:i+2, j-1:j+2, k-1:k+2]
                 local_dist_weight = (dist_weights *
                                      local_mask[..., None]).ravel()
                 local_dm = (self.design_matrix * local_mask[..., None, None])
