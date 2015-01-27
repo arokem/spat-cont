@@ -23,7 +23,7 @@ def l2norm(vector):
     return vector / np.dot(vector, vector)
 
 
-def distance_weight(dist, tau=1.0):
+def distance_weight(dist, tau=TAU):
     """
     A weighting for the distance from V0 
     """
@@ -73,8 +73,7 @@ def design_matrix(gtab, sphere, tau=TAU,
                 for col in columns:
                     in_dir = sphere.vertices[col]
                     dm[location[0]+1, location[1]+1, location[2]+1, row, col] =\
-                       weighting(location, out_dir, in_dir, tau) * sfm_dm[row, col]
-            
+                    weighting(location, out_dir, in_dir, tau) * sfm_dm[row, col]
     return dm
 
 
@@ -108,7 +107,7 @@ def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=TAU):
     sig = (this_data[..., ~gtab.b0s_mask] /
            np.mean(this_data[..., gtab.b0s_mask], -1)[..., None])
     sig = sig - np.mean(sig, -1)[..., None]
-    sig = sig.ravel() * dist_weights
+    sig = sig.ravel() * dist_weights.ravel()
     return sig
 
 
