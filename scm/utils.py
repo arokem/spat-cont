@@ -97,6 +97,9 @@ def signal_weights(gtab, tau=TAU):
     return dist_weights
 
 
+# XXX The following function should be removed at some point. For now, it's
+# useful to keep around:
+
 def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=TAU):
     if dist_weights is None:
         dist_weights = signal_weights(gtab, tau=tau)
