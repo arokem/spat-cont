@@ -4,7 +4,7 @@ import dipy.reconst.sfm as sfm
 import dipy.core.geometry as geo
 import dipy.core.ndindex as dnd
 
-TAU = 1
+TAU = 2
 NEIGHBORS = 3
 
 
@@ -20,17 +20,17 @@ def l2norm(vector):
     -------
     The vector, normalized by its norm    
     """
-    return vector / np.dot(vector, vector)
+    return vector / np.sqrt(np.dot(vector, vector).astype(float))
 
 
-def distance_weight(dist, tau=TAU):
+def distance_weight(dist, tau):
     """
     A weighting for the distance from V0 
     """
     return np.exp(-dist/tau)
 
 
-def weighting(location, out_dir, in_dir, tau=TAU):
+def weighting(location, out_dir, in_dir, tau, dir_weighting=0.5):
     """
     A weighting that takes into account the distance from V0, as well as the
     angle between the vector between the center of V0 and each of the
@@ -39,12 +39,13 @@ def weighting(location, out_dir, in_dir, tau=TAU):
 
     """
     norm_location = l2norm(location)
-    out_corr = np.dot(norm_location, out_dir) 
-    in_corr = np.dot(norm_location, in_dir)
-    return (distance_weight(np.dot(location, location), tau))
+    out_corr = np.abs(np.dot(norm_location, out_dir))
+    in_corr = np.abs(np.dot(norm_location, in_dir))
+    return (out_corr * in_corr * 
+            distance_weight(np.dot(location, location), tau))
 
 
-def design_matrix(gtab, sphere, tau=TAU,
+def design_matrix(gtab, sphere, tau,
                   evals=np.array([0.0015, 0.0005, 0.0005])):
     """
     The volumized design matrix by voxel in the NEIGHBORS-by-NEIGHBORS
@@ -77,7 +78,7 @@ def design_matrix(gtab, sphere, tau=TAU,
     return dm
 
 
-def signal_weights(gtab, tau=TAU):
+def signal_weights(gtab, tau):
     """
     Calculate the weights to apply to signal vectors (depending on the distance
     of the voxels from the center voxel).
@@ -100,7 +101,7 @@ def signal_weights(gtab, tau=TAU):
 # XXX The following function should be removed at some point. For now, it's
 # useful to keep around:
 
-def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=TAU):
+def preprocess_signal(data, gtab, i, j, k, dist_weights=None, tau=None):
     if dist_weights is None:
         dist_weights = signal_weights(gtab, tau=tau)
     dw_shape = np.sum(~gtab.b0s_mask)
