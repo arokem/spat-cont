@@ -19,7 +19,7 @@ TAU = 1
 
 class SpatContModel(SparseFascicleModel):
     def __init__(self, gtab, sphere=None, response=[0.0015, 0.0005, 0.0005],
-                 solver='ElasticNet', l1_ratio=0.8, alpha=0.0001, tau=TAU):
+                 solver='ElasticNet', l1_ratio=0.5, alpha=0.001, tau=TAU):
         
         SparseFascicleModel.__init__(self, gtab, sphere, response,
                                      solver, l1_ratio, alpha)
@@ -84,7 +84,7 @@ class SpatContModel(SparseFascicleModel):
                 local_dm = local_dm.reshape(-1, self.sc_design_matrix.shape[-1])
                 fit_it = local_data.ravel() * local_dist_weight
                 this_alpha = (self.orig_alpha *
-                          np.sum(local_dist_weight**2)/local_dm.shape[0])
+                           np.sum(local_dist_weight**2)/local_dm.shape[0])
                 self.solver.alpha = this_alpha
                 beta[i, j, k] = self.solver.fit(local_dm,
                                                 fit_it).coef_
