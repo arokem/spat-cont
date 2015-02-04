@@ -4,7 +4,6 @@ import dipy.reconst.sfm as sfm
 import dipy.core.geometry as geo
 import dipy.core.ndindex as dnd
 
-TAU = 2
 NEIGHBORS = 3
 
 
@@ -30,7 +29,7 @@ def distance_weight(dist, tau):
     return np.exp(-dist/tau)
 
 
-def weighting(location, out_dir, in_dir, tau, dir_weighting=0.5):
+def dm_weighting(location, out_dir, in_dir, tau, dir_weighting=0.5):
     """
     A weighting that takes into account the distance from V0, as well as the
     angle between the vector between the center of V0 and each of the
@@ -41,7 +40,8 @@ def weighting(location, out_dir, in_dir, tau, dir_weighting=0.5):
     norm_location = l2norm(location)
     out_corr = np.abs(np.dot(norm_location, out_dir))
     in_corr = np.abs(np.dot(norm_location, in_dir))
-    return (out_corr * in_corr * 
+    dir_factor = (out_corr * in_corr) ** dir_weighting
+    return (dir_factor * 
             distance_weight(np.dot(location, location), tau))
 
 
@@ -74,7 +74,7 @@ def design_matrix(gtab, sphere, tau,
                 for col in columns:
                     in_dir = sphere.vertices[col]
                     dm[location[0]+1, location[1]+1, location[2]+1, row, col] =\
-                    weighting(location, out_dir, in_dir, tau) * sfm_dm[row, col]
+                dm_weighting(location, out_dir, in_dir, tau) * sfm_dm[row, col]
     return dm
 
 
